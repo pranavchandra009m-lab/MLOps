@@ -1,0 +1,65 @@
+name: MLOps Pipeline
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  register-dataset:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: pip install -r mlops/requirements.txt
+
+      - name: Register Dataset
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python mlops/model_building/data_register.py
+
+  data-preparation:
+    needs: register-dataset
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: pip install -r mlops/requirements.txt
+
+      - name: Prepare Data
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python mlops/model_building/prep.py
+
+  model-training:
+    needs: data-preparation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: pip install -r mlops/requirements.txt
+
+      - name: Train Model
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python mlops/model_building/train.py
+
+  deploy:
+    needs: model-training
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: pip install -r mlops/requirements.txt
+
+      - name: Deploy App
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python mlops/hosting/hosting.py
