@@ -1,65 +1,100 @@
-name: MLOps Pipeline
+name: Customer Churn MLOps Pipeline
 
 on:
   workflow_dispatch:
 
 jobs:
 
-  register-dataset:
+  upload-dataset:
+
+    name: Upload Dataset to Hugging Face
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Install Dependencies
-        run: pip install -r mlops/deployment/requirements.txt
+        run: |
+          pip install -r mlops/requirements.txt
 
-      - name: Register Dataset
+      - name: Upload Dataset
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: python mlops/model_building/data_register.py
 
-  data-preparation:
-    needs: register-dataset
+        run: |
+          python mlops/data_pipeline/upload_dataset.py
+
+
+  prepare-data:
+
+    name: Prepare Training Data
+    needs: upload-dataset
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Install Dependencies
-        run: pip install -r mlops/deployment/requirements.txt
+        run: |
+          pip install -r mlops/requirements.txt
 
       - name: Prepare Data
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: python mlops/model_building/prep.py
 
-  model-training:
-    needs: data-preparation
+        run: |
+          python mlops/data_pipeline/prepare_data.py
+
+
+
+  train-model:
+
+    name: Train Machine Learning Model
+    needs: prepare-data
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Install Dependencies
-        run: pip install -r mlops/deployment/requirements.txt
+        run: |
+          pip install -r mlops/requirements.txt
 
       - name: Train Model
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: python mlops/model_building/train.py
 
-  deploy:
-    needs: model-training
+        run: |
+          python mlops/model_training/train_model.py
+
+
+
+  deploy-application:
+
+    name: Deploy Streamlit Application
+    needs:
+      - train-model
+
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Install Dependencies
-        run: pip install -r mlops/deployment/requirements.txt
+        run: |
+          pip install -r mlops/requirements.txt
 
-      - name: Deploy App
+      - name: Deploy Application
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: python mlops/hosting/hosting.py
+
+        run: |
+          python mlops/deployment/deploy_app.py
